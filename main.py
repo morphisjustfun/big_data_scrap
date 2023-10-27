@@ -101,15 +101,17 @@ def fifa2023_stats():
             time.sleep(1)
             dic = fifa2023_stats_player(session, id)
             df_n = pd.concat([df_n, pd.DataFrame(dic, index=[0])], ignore_index=True)
+            if i % 100 == 0:
+                df_n.to_csv('players_2023_stats.csv', index=False, header=False, mode='a')
+                df_n = pd.DataFrame()
         except Exception as e:
             #print id to error file
             with open('error.txt', 'a') as f:
                 f.write(id + '\n')
             df_n.to_csv('players_2023_stats.csv', index=False, header=False, mode='a')
             df_n = pd.DataFrame()
-            continue
 
-    df_n.to_csv('players_2023_stats.csv', index=False)
+    df_n.to_csv('players_2023_stats.csv', index=False, header=False, mode='a')
 
 
 
