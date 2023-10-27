@@ -2,6 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import json
+import time
 
 
 def fifa2024_players():
@@ -80,22 +81,32 @@ def fifa2023_history():
     df_n.to_csv('players_2023_history.csv', index=False)
 
 def fifa2023_stats_player(session, id):
-    r = session.get(f'https://www.futwiz.com/en/app/sold23/{id}/console').text
-    r = r.replace('\n', '')
-    j = json.loads(r)
-    return j['player']
+    try:
+        r = session.get(f'https://www.futwiz.com/en/app/sold23/{id}/console').text
+        r = r.replace('\n', '')
+        j = json.loads(r)
+        return j['player']
+    except Exception as e:
+        print(r)
+        exit()
 
 def fifa2023_stats():
     df = pd.read_csv('players_2023.csv')
     session = requests.Session()
     df_n = pd.DataFrame()
     ids = df['href'].apply(lambda x: x.split('/')[-1].split('-')[0])
-    for id in ids:
+    for i, id in enumerate(ids):
+        print(f'{i}/{len(ids)}')
         try:
+            time.sleep(1)
             dic = fifa2023_stats_player(session, id)
             df_n = pd.concat([df_n, pd.DataFrame(dic, index=[0])], ignore_index=True)
-        except:
-            df_n.to_csv('players_2023_stats.csv', index=False)
+        except Exception as e:
+            #print id to error file
+            with open('error.txt', 'a') as f:
+                f.write(id + '\n')
+            df_n.to_csv('players_2023_stats.csv', index=False, header=False, mode='a')
+            df_n = pd.DataFrame()
             continue
 
     df_n.to_csv('players_2023_stats.csv', index=False)
