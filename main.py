@@ -81,14 +81,11 @@ def fifa2023_history():
     df_n.to_csv('players_2023_history.csv', index=False)
 
 def fifa2023_stats_player(session, id):
-    try:
-        r = session.get(f'https://www.futwiz.com/en/app/sold23/{id}/console').text
-        r = r.replace('\n', '')
-        j = json.loads(r)
-        return j['player']
-    except Exception as e:
-        print(r)
-        exit()
+    r = session.get(f'https://www.futwiz.com/en/app/sold23/{id}/console').text
+    r = r.replace('\n', '')
+    j = json.loads(r)
+    return j['player']
+
 
 def fifa2023_stats():
     df = pd.read_csv('players_2023.csv')
