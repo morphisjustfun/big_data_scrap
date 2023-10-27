@@ -1,3 +1,5 @@
+from random import random
+
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -85,6 +87,7 @@ def fifa2023_history():
                     ignore_index=True)
         except:
             df_not_found = pd.concat([df_not_found, pd.DataFrame({'id': [id]})], ignore_index=True)
+            time.sleep(0.1 + 0.3 * random())
             continue
         if index % 100 == 0:
             print(index, '/', len(ids))
