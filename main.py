@@ -266,6 +266,8 @@ def fifa2020_history_thread(core_id):
 
     df_n.to_csv(f'players_2020_history_{core_id}.csv', index=False, mode='a', header=False)
 
+
+
 def fifa_2020_history():
     columns = ['id', 'type', 'timestamp', 'price']
     df_n = pd.DataFrame(columns=columns)
@@ -277,6 +279,78 @@ def fifa_2020_history():
     pool.map(fifa2020_history_thread, range(n_multiprocessing))
 
 
+def fifa2019_players():
+    base_page = 'https://www.futwiz.com/en/fifa19/players'
+    base_page_href = 'https://www.futwiz.com'
+    session = requests.Session()
+    max_page = 827
+    min_page = 0
+
+    columns = ['name', 'href']
+    df = pd.DataFrame(columns=columns)
+
+    for i in range(min_page, max_page + 1):
+        request = session.get(base_page + '?page=' + str(i))
+        soup = BeautifulSoup(request.text, 'html.parser')
+        divs = soup.find_all('td', {'class': 'player'})
+        divs = divs[1:]
+        for div in divs:
+            link = div.find('a')['href']
+            name = div.find('a').find('b').text
+            print(base_page_href + link)
+            df = pd.concat([df, pd.DataFrame({'name': [name], 'href': [base_page_href + link]})], ignore_index=True)
+
+    df.to_csv('players_2019.csv', index=False)
+
+
+def fifa2019_history_thread(core_id):
+    df = pd.read_csv('players_2019.csv')
+    session = requests.Session()
+    columns = ['id', 'type', 'timestamp', 'price']
+    df_n = pd.DataFrame(columns=columns)
+    df = df.iloc[core_id::4]
+    ids = df['href'].apply(lambda x: x.split('/')[-1].split('-')[0])
+
+    for index, id in enumerate(ids):
+        try:
+            r = session.get(f'https://www.futwiz.com/en/app/price_history_player?p={id}&c=xb').text
+            r = r.replace('\n', '')
+            j = json.loads(r)
+            for p in j:
+                df_n = pd.concat(
+                    [df_n, pd.DataFrame({'id': [id], 'type': ['xb'], 'timestamp': [p[0]], 'price': [p[1]]})],
+                    ignore_index=True)
+        except:
+            time.sleep(0.1 + 0.3 * random())
+            pass
+        try:
+            r = session.get(f'https://www.futwiz.com/en/app/price_history_player?p={id}&c=ps').text
+            r = r.replace('\n', '')
+            j = json.loads(r)
+            for p in j:
+                df_n = pd.concat(
+                    [df_n, pd.DataFrame({'id': [id], 'type': ['ps'], 'timestamp': [p[0]], 'price': [p[1]]})],
+                    ignore_index=True)
+        except:
+            time.sleep(0.1 + 0.3 * random())
+            pass
+
+        if index % 100 == 0:
+            df_n.to_csv(f'players_2019_history_{core_id}.csv', index=False, mode='a', header=False)
+            df_n = pd.DataFrame(columns=columns)
+
+    df_n.to_csv(f'players_2019_history_{core_id}.csv', index=False, mode='a', header=False)
+
+def fifa_2019_history():
+    columns = ['id', 'type', 'timestamp', 'price']
+    df_n = pd.DataFrame(columns=columns)
+    n_multiprocessing = 4
+    for i in range(n_multiprocessing):
+        df_n.to_csv(f'players_2019_history_{i}.csv', index=False)
+    pool = Pool(n_multiprocessing)
+    # pass the function the id of the thread
+    pool.map(fifa2019_history_thread, range(n_multiprocessing))
+
 if __name__ == '__main__':
-    fifa_2020_history()
+    fifa_2019_history()
 
