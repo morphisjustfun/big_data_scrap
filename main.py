@@ -1,3 +1,5 @@
+import multiprocessing
+from multiprocessing import Pool
 from random import random
 
 import requests
@@ -154,50 +156,55 @@ def fifa2021_players():
 
     df.to_csv('players_2021.csv', index=False)
 
-def fifa2021_history():
+def fifa2021_history_thread(core_id):
     df = pd.read_csv('players_2021.csv')
     session = requests.Session()
     columns = ['id', 'type', 'timestamp', 'price']
     columns_not_found = ['id']
     df_n = pd.DataFrame(columns=columns)
     df_not_found = pd.DataFrame(columns=columns_not_found)
+    df = df.iloc[core_id::4]
     ids = df['href'].apply(lambda x: x.split('/')[-1].split('-')[0])
-
-    df_n.to_csv('players_2023_history.csv', index=False)
-    df_not_found.to_csv('players_2023_history_not_found.csv', index=False)
 
     for index, id in enumerate(ids):
         try:
-            r = session.get(f'https://www.futwiz.com/en/app/price_history_player23_multi?p={id}').text
+            r = session.get(f'https://www.futwiz.com/en/app/price_history_player21_multi?p={id}').text
             r = r.replace('\n', '')
             j = json.loads(r)
             if not j:
                 continue
-            pc = j['pc']
-            console = j['console']
-            for p in pc:
-                print(p)
-                df_n = pd.concat(
-                    [df_n, pd.DataFrame({'id': [id], 'type': ['pc'], 'timestamp': [p[0]], 'price': [p[1]]})],
-                    ignore_index=True)
-            for c in console:
-                df_n = pd.concat(
-                    [df_n, pd.DataFrame({'id': [id], 'type': ['console'], 'timestamp': [c[0]], 'price': [c[1]]})],
-                    ignore_index=True)
+            keys = j.keys()
+            for k in keys:
+                for p in j[k]:
+                    df_n = pd.concat(
+                        [df_n, pd.DataFrame({'id': [id], 'type': [k], 'timestamp': [p[0]], 'price': [p[1]]})],
+                        ignore_index=True)
         except:
             df_not_found = pd.concat([df_not_found, pd.DataFrame({'id': [id]})], ignore_index=True)
             time.sleep(0.1 + 0.3 * random())
             continue
         if index % 100 == 0:
-            print(index, '/', len(ids))
-            df_n.to_csv('players_2023_history.csv', index=False, mode='a', header=False)
-            df_not_found.to_csv('players_2023_history_not_found.csv', index=False, mode='a', header=False)
+            df_n.to_csv(f'players_2021_history_{core_id}.csv', index=False, mode='a', header=False)
+            df_not_found.to_csv(f'players_2021_history_not_found_{core_id}.csv', index=False, mode='a', header=False)
             df_n = pd.DataFrame(columns=columns)
             df_not_found = pd.DataFrame(columns=columns_not_found)
 
-    df_not_found.to_csv('players_2023_history_not_found.csv', index=False, mode='a', header=False)
-    df_n.to_csv('players_2023_history.csv', index=False, mode='a', header=False)
+    df_n.to_csv(f'players_2021_history_{core_id}.csv', index=False, mode='a', header=False)
+    df_not_found.to_csv(f'players_2021_history_not_found_{core_id}.csv', index=False, mode='a', header=False)
+
+def fifa_2021_history():
+    columns = ['id', 'type', 'timestamp', 'price']
+    columns_not_found = ['id']
+    df_n = pd.DataFrame(columns=columns)
+    df_not_found = pd.DataFrame(columns=columns_not_found)
+    n_multiprocessing = 4
+    for i in range(n_multiprocessing):
+        df_n.to_csv(f'players_2021_history_{i}.csv', index=False)
+        df_not_found.to_csv(f'players_2021_history_not_found_{i}.csv', index=False)
+    pool = Pool(n_multiprocessing)
+    # pass the function the id of the thread
+    pool.map(fifa2021_history_thread, range(n_multiprocessing))
 
 
 if __name__ == '__main__':
-    fifa2021_players()
+    fifa_2021_history()
